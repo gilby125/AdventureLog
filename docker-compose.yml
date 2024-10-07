@@ -46,7 +46,7 @@ services:
       - DEBUG=False
       - FRONTEND_URL='http://localhost:8080'
     ports:
-      - "8055:8000"
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
