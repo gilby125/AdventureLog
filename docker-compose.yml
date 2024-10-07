@@ -1,13 +1,12 @@
 services:
   web:
-    #build: ./frontend/
     image: ghcr.io/seanmorley15/adventurelog-frontend:latest
     container_name: adventurelog-frontend
     restart: unless-stopped
     environment:
-      - PUBLIC_SERVER_URL=http://server:8000 # MOST DOCKER USERS WILL NEVER NEED TO CHANGE THIS, EVEN IF YOU CHANGE THE PORTS
+      - PUBLIC_SERVER_URL=http://server:8000
       - ORIGIN=http://localhost:8080
-      - BODY_SIZE_LIMIT=Infinity # This is measured in bytes
+      - BODY_SIZE_LIMIT=Infinity
     ports:
       - "8080:3000"
     depends_on:
@@ -23,9 +22,13 @@ services:
       POSTGRES_PASSWORD: changeme123
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adventure -d database"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   server:
-    #build: ./backend/
     image: ghcr.io/seanmorley15/adventurelog-backend:latest
     container_name: adventurelog-backend
     restart: unless-stopped
@@ -33,20 +36,20 @@ services:
       - PGHOST=db
       - PGDATABASE=database
       - PGUSER=adventure
-      - PGPASSWORD=changeme123 # This should be the same as the POSTGRES_PASSWORD in the db service
+      - PGPASSWORD=changeme123
       - SECRET_KEY=changeme123
       - DJANGO_ADMIN_USERNAME=admin
       - DJANGO_ADMIN_PASSWORD=admin
       - DJANGO_ADMIN_EMAIL=admin@example.com
-      - PUBLIC_URL='http://localhost:81' # NOTE: THIS IS THE PUBLIC URL TO THE **NGINX** SERVER USED FOR MEDIA FILES!
-      - CSRF_TRUSTED_ORIGINS=https://api.adventurelog.app,https://adventurelog.app # This is a comma separated list of trusted origins for CSRF, this should include where your frontend is hosted.
+      - PUBLIC_URL='http://localhost:81'
+      - CSRF_TRUSTED_ORIGINS=https://api.adventurelog.app,https://adventurelog.app,http://localhost:8080,http://localhost:81
       - DEBUG=False
-      - FRONTEND_URL='http://localhost:8080' # This is the URL of the frontend server
-      #- DISABLE_REGISTRATION=True
+      - FRONTEND_URL='http://localhost:8080'
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - adventurelog_media:/code/media/
 
@@ -64,4 +67,6 @@ services:
 
 volumes:
   postgres_data:
+    name: adventurelog_postgres_data
   adventurelog_media:
+    name: adventurelog_media_data
